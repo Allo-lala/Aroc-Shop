@@ -21,6 +21,8 @@ export default tseslint.config({
     // Optionally, add this for stylistic rules
     ...tseslint.configs.stylisticTypeChecked,
   ],
+
+  // VHXma?bS.#NL8y+
   languageOptions: {
     // other options...
     parserOptions: {
