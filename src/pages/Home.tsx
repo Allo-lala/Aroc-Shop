@@ -32,7 +32,7 @@ export default function Home() {
             transition={{ delay: 0.3 }}
             className="text-5xl md:text-7xl font-bold text-white mb-6"
           >
-            Discover Unique Art
+            Welcome To Our  Market
           </motion.h1>
           <motion.p 
             initial={{ y: 20, opacity: 0 }}
@@ -40,8 +40,8 @@ export default function Home() {
             transition={{ delay: 0.4 }}
             className="text-xl text-white/90 mb-8 max-w-2xl"
           >
-            Explore our collection of original artworks and exclusive merchandise. 
-            Each piece tells a story, crafted with passion and creativity.
+            Browse through our collection of artworks and exclusive merchandise. 
+            Each piece has a story, crafted by humans with passion and creativity.
           </motion.p>
           <motion.div
             initial={{ y: 20, opacity: 0 }}
@@ -82,7 +82,7 @@ export default function Home() {
               className="w-full h-full object-cover transition group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-black/40 flex items-end p-6">
-              <h3 className="text-2xl font-bold text-white">Original Art</h3>
+              <h3 className="text-2xl font-bold text-white"> Art Works</h3>
             </div>
           </motion.div>
           <motion.div 
@@ -98,7 +98,7 @@ export default function Home() {
               className="w-full h-full object-cover transition group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-black/40 flex items-end p-6">
-              <h3 className="text-2xl font-bold text-white">Apparel</h3>
+              <h3 className="text-2xl font-bold text-white">Our Merchandise</h3>
             </div>
           </motion.div>
           <motion.div 
@@ -128,7 +128,7 @@ export default function Home() {
           viewport={{ once: true }}
           className="text-3xl font-bold mb-8"
         >
-          Featured Products
+          Latest Releases
         </motion.h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <motion.div 
