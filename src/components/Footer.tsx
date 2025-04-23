@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import logo from '/./src/assets/footer.png';
 
 export default function Footer() {
   return (
@@ -6,8 +7,10 @@ export default function Footer() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-xl font-bold mb-4">Aroc</h3>
-            <p className="text-gray-400">Discover unique art pieces and merchandise from talented artists around the world.</p>
+            <Link to="/">
+              <img src={logo} alt="Aroc Logo" className="h-10 w-auto" />
+            </Link>
+            <p className="text-gray-400">Discover unique pieces from talented artists.</p>
           </div>
           <div>
             <h4 className="font-semibold mb-4">Quick Links</h4>

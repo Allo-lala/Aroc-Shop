@@ -77,12 +77,12 @@ export default function Home() {
             className="relative h-[400px] group overflow-hidden rounded-lg"
           >
             <img
-              src="https://images.pexels.com/photos/1647976/pexels-photo-1647976.jpeg"
+              src="https://images.pexels.com/photos/3778078/pexels-photo-3778078.jpeg?auto=compress&cs=tinysrgb&h=226.525&fit=crop&w=253.17499999999998&dpr=1"
               alt="Original Art"
               className="w-full h-full object-cover transition group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-black/40 flex items-end p-6">
-              <h3 className="text-2xl font-bold text-white"> Art Works</h3>
+              <h3 className="text-2xl font-bold text-white"> Paintings</h3>
             </div>
           </motion.div>
           <motion.div 
@@ -93,12 +93,12 @@ export default function Home() {
             className="relative h-[400px] group overflow-hidden rounded-lg"
           >
             <img
-              src="https://images.pexels.com/photos/1656684/pexels-photo-1656684.jpeg"
+              src="https://images.pexels.com/photos/6461528/pexels-photo-6461528.jpeg?auto=compress&cs=tinysrgb&w=600"
               alt="Apparel"
               className="w-full h-full object-cover transition group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-black/40 flex items-end p-6">
-              <h3 className="text-2xl font-bold text-white">Our Merchandise</h3>
+              <h3 className="text-2xl font-bold text-white">Craft </h3>
             </div>
           </motion.div>
           <motion.div 
@@ -109,12 +109,12 @@ export default function Home() {
             className="relative h-[400px] group overflow-hidden rounded-lg"
           >
             <img
-              src="https://images.pexels.com/photos/1148955/pexels-photo-1148955.jpeg"
+              src="https://images.pexels.com/photos/6714812/pexels-photo-6714812.jpeg?auto=compress&cs=tinysrgb&w=600"
               alt="Accessories"
               className="w-full h-full object-cover transition group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-black/40 flex items-end p-6">
-              <h3 className="text-2xl font-bold text-white">Accessories</h3>
+              <h3 className="text-2xl font-bold text-white">Sculpture</h3>
             </div>
           </motion.div>
         </div>
@@ -128,7 +128,7 @@ export default function Home() {
           viewport={{ once: true }}
           className="text-3xl font-bold mb-8"
         >
-          Latest Releases
+          Our Merchandise
         </motion.h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <motion.div 
@@ -140,12 +140,12 @@ export default function Home() {
           >
             <div className="aspect-square overflow-hidden rounded-lg mb-4">
               <img
-                src="https://images.pexels.com/photos/1579708/pexels-photo-1579708.jpeg"
-                alt="Abstract Painting"
+                src="https://images.pexels.com/photos/5603266/pexels-photo-5603266.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load"
+                alt=" Crochet"
                 className="w-full h-full object-cover transition group-hover:scale-105"
               />
             </div>
-            <h3 className="font-semibold mb-2">Abstract Dreams</h3>
+            <h3 className="font-semibold mb-2">Crochets</h3>
             <p className="text-gray-600">$299.99</p>
           </motion.div>
           <motion.div 
@@ -162,7 +162,7 @@ export default function Home() {
                 className="w-full h-full object-cover transition group-hover:scale-105"
               />
             </div>
-            <h3 className="font-semibold mb-2">Artist Series T-Shirt</h3>
+            <h3 className="font-semibold mb-2"> T-Shirt</h3>
             <p className="text-gray-600">$34.99</p>
           </motion.div>
           <motion.div 
@@ -174,12 +174,12 @@ export default function Home() {
           >
             <div className="aspect-square overflow-hidden rounded-lg mb-4">
               <img
-                src="https://images.pexels.com/photos/6046183/pexels-photo-6046183.jpeg"
+                src="https://images.pexels.com/photos/8217406/pexels-photo-8217406.jpeg?auto=compress&cs=tinysrgb&w=600"
                 alt="Hoodie"
                 className="w-full h-full object-cover transition group-hover:scale-105"
               />
             </div>
-            <h3 className="font-semibold mb-2">Artistic Hoodie</h3>
+            <h3 className="font-semibold mb-2"> Hoodie</h3>
             <p className="text-gray-600">$59.99</p>
           </motion.div>
           <motion.div 
@@ -191,12 +191,12 @@ export default function Home() {
           >
             <div className="aspect-square overflow-hidden rounded-lg mb-4">
               <img
-                src="https://images.pexels.com/photos/1793035/pexels-photo-1793035.jpeg"
-                alt="Coffee Mug"
+                src="https://images.pexels.com/photos/7983231/pexels-photo-7983231.jpeg?auto=compress&cs=tinysrgb&w=600"
+                alt="Bucket Hat"
                 className="w-full h-full object-cover transition group-hover:scale-105"
               />
             </div>
-            <h3 className="font-semibold mb-2">Designer Coffee Mug</h3>
+            <h3 className="font-semibold mb-2">Bucket Hat</h3>
             <p className="text-gray-600">$24.99</p>
           </motion.div>
         </div>
