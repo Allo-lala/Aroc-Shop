@@ -20,7 +20,7 @@ export default function Home() {
         <div className="absolute inset-0 z-0">
           <img
             src="https://images.pexels.com/photos/1266808/pexels-photo-1266808.jpeg"
-            alt="Hero background"
+            alt=" background"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-black/50"></div>
@@ -158,7 +158,7 @@ export default function Home() {
             <div className="aspect-square overflow-hidden rounded-lg mb-4">
               <img
                 src="https://images.pexels.com/photos/8532616/pexels-photo-8532616.jpeg"
-                alt="Graphic T-Shirt"
+                alt="Aroc T-Shirt"
                 className="w-full h-full object-cover transition group-hover:scale-105"
               />
             </div>
