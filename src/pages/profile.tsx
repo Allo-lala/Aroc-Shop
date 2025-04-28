@@ -2,12 +2,24 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { motion } from 'framer-motion';
-import { User } from '@supabase/supabase-js'; // ✅ Correct import!
+
+interface Profile {
+  avatar_url: string;
+  nickname: string;
+  shipping_address: string;
+  country: string;
+  email: string;
+}
+
+interface User {
+  id: string;
+  email?: string | null;
+}
 
 export default function Profile() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<Profile>({
     avatar_url: '',
     nickname: '',
     shipping_address: '',
@@ -19,45 +31,70 @@ export default function Profile() {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error('Failed to get user:', error.message);
+        return;
+      }
       if (!user) {
         navigate('/auth');
         return;
       }
       setUser(user);
 
-      const { data: profileData, error } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
-      
-      if (error) {
-        console.error('Error fetching profile:', error.message);
-        return;
+
+      if (profileError && profileError.code !== 'PGRST116') { // ignore "no rows" error
+        console.error('Failed to fetch profile:', profileError.message);
       }
 
       if (profileData) {
         setProfile(profileData);
       } else {
-        setProfile(prev => ({ ...prev, email: user.email || '' }));
+        // If profile doesn't exist, insert a new blank one
+        const { error: insertError } = await supabase.from('profiles').insert([
+          {
+            id: user.id,
+            email: user.email,
+            nickname: '',
+            avatar_url: '',
+            shipping_address: '',
+            country: '',
+          }
+        ]);
+        if (insertError) {
+          console.error('Failed to insert profile:', insertError.message);
+        } else {
+          setProfile({
+            avatar_url: '',
+            nickname: '',
+            shipping_address: '',
+            country: '',
+            email: user.email || '',
+          });
+        }
       }
     };
 
     getUser();
   }, [navigate]);
 
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
     try {
       setLoading(true);
       const file = event.target.files?.[0];
       if (!file) return;
 
-      const fileExt = file.name.split('.').pop();
       if (!user) {
-        throw new Error('User is not authenticated');
+        throw new Error('User not authenticated');
       }
-      const filePath = `${user.id}-${Math.random()}.${fileExt}`;
+
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -65,28 +102,25 @@ export default function Profile() {
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage
+      const { data: { publicUrl } } = supabase
+        .storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      if (!data.publicUrl) throw new Error('Could not get public URL for avatar');
-
-      const publicUrl = data.publicUrl;
-
-      setProfile((prev) => ({ ...prev, avatar_url: publicUrl }));
+      setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
       await updateProfile({ avatar_url: publicUrl });
 
-    } catch (error: any) {
-      console.error('Error uploading avatar:', error.message);
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
       setMessage('Failed to upload avatar');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
     const { name, value } = e.target;
-    setProfile((prev) => ({ ...prev, [name]: value }));
+    setProfile(prev => ({ ...prev, [name]: value }));
   };
 
   const updateProfile = async (updates = {}) => {
@@ -101,21 +135,17 @@ export default function Profile() {
           ...updates
         });
 
-      if (error) {
-        console.error('Supabase upsert error:', error.message);
-        throw error;
-      }
-
+      if (error) throw error;
       setMessage('Profile updated successfully!');
-    } catch (error: any) {
-      console.error('Error updating profile:', error.message);
+    } catch (error) {
+      console.error('Error updating profile:', error);
       setMessage('Failed to update profile');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
+  const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e): Promise<void> => {
     e.preventDefault();
     await updateProfile();
   };
@@ -125,7 +155,13 @@ export default function Profile() {
     navigate('/');
   };
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-black"></div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -161,10 +197,9 @@ export default function Profile() {
             <input
               type="text"
               name="nickname"
-              value={profile.nickname || ''}
+              value={profile.nickname}
               onChange={handleInputChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-              disabled={loading}
             />
           </div>
 
@@ -173,10 +208,9 @@ export default function Profile() {
             <input
               type="email"
               name="email"
-              value={profile.email || ''}
+              value={profile.email}
               onChange={handleInputChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-              disabled={loading}
             />
           </div>
 
@@ -184,11 +218,10 @@ export default function Profile() {
             <label className="block text-sm font-medium text-gray-700">Shipping Address</label>
             <textarea
               name="shipping_address"
-              value={profile.shipping_address || ''}
+              value={profile.shipping_address}
               onChange={handleInputChange}
               rows={3}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-              disabled={loading}
             />
           </div>
 
@@ -197,10 +230,9 @@ export default function Profile() {
             <input
               type="text"
               name="country"
-              value={profile.country || ''}
+              value={profile.country}
               onChange={handleInputChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-              disabled={loading}
             />
           </div>
 
@@ -221,8 +253,7 @@ export default function Profile() {
             <button
               type="button"
               onClick={handleSignOut}
-              disabled={loading}
-              className="flex-1 border border-black py-2 px-4 rounded-md hover:bg-gray-50 transition disabled:opacity-50"
+              className="flex-1 border border-black py-2 px-4 rounded-md hover:bg-gray-50 transition"
             >
               Sign Out
             </button>

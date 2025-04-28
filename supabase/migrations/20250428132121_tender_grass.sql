@@ -1,16 +1,4 @@
-/*
-  # Create profiles table and storage for user avatars
 
-  1. New Tables
-    - `profiles`
-      - `id` (uuid, primary key, references auth.users)
-      - `avatar_url` (text)
-      - `updated_at` (timestamp)
-
-  2. Security
-    - Enable RLS on `profiles` table
-    - Add policies for authenticated users to manage their profile
-*/
 
 CREATE TABLE IF NOT EXISTS profiles (
   id uuid PRIMARY KEY REFERENCES auth.users,
