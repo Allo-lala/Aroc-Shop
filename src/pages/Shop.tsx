@@ -1,5 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { supabase, addToCart, CartItem } from '../lib/supabase';
+import { User } from '@supabase/supabase-js';
+import { FiSearch } from 'react-icons/fi';
 
 const products = [
   {
@@ -64,12 +68,86 @@ const products = [
   }
 ];
 
+const ITEMS_PER_PAGE = 6;
+
 export default function Shop() {
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<LoadingState>({});
+  const navigate = useNavigate();
 
-  const filteredProducts = selectedCategory === "All" 
-    ? products 
-    : products.filter(product => product.category === selectedCategory);
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+  }, []);
+
+  const filteredProducts = products
+    .filter(product => selectedCategory === "All" || product.category === selectedCategory)
+    .filter(product => 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  interface Product {
+    id: number;
+    name: string;
+    price: number;
+    category: string;
+    image: string;
+    artist: string;
+    location: string;
+    story: string;
+  }
+
+  interface LoadingState {
+    [key: number]: boolean;
+  }
+
+  const handleAddToCart = async (product: Product): Promise<void> => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    setLoading((prev: LoadingState) => ({ ...prev, [product.id]: true }));
+    try {
+      const cartItem: CartItem = {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        quantity: 1
+      };
+      await addToCart(cartItem);
+      navigate('/cart');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    } finally {
+      setLoading((prev: LoadingState) => ({ ...prev, [product.id]: false }));
+    }
+  };
+
+  const handleBuyNow = async (product: Product) => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    
+    await handleAddToCart(product);
+    navigate('/cart');
+  };
 
   return (
     <motion.div
@@ -77,11 +155,26 @@ export default function Shop() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
+      className="container mx-auto px-4 py-8"
     >
-      {/* Header */}
+      {/* Search Bar */}
+      <div className="max-w-2xl mx-auto mb-12">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search products, artists, or categories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-3 pl-12 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+          />
+          <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        </div>
+      </div>
+
+      {/* Categories */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-4">Shop</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button 
             onClick={() => setSelectedCategory("All")}
             className={`px-4 py-2 rounded-full ${
@@ -127,7 +220,7 @@ export default function Shop() {
 
       {/* Product Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {filteredProducts.map((product) => (
+        {paginatedProducts.map((product) => (
           <motion.div
             key={product.id}
             initial={{ opacity: 0, y: 20 }}
@@ -145,17 +238,25 @@ export default function Shop() {
             </div>
             <div className="p-6">
               <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
-              <p className="text-gray-600 text-lg mb-4">${product.price}</p>
+              <p className="text-gray-600 text-lg mb-4">${product.price.toFixed(2)}</p>
               <div className="mb-4">
                 <p className="text-sm text-gray-500">By {product.artist}</p>
                 <p className="text-sm text-gray-500">{product.location}</p>
               </div>
               <p className="text-gray-600 mb-4">{product.story}</p>
               <div className="flex gap-2">
-                <button className="flex-1 bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition">
+                <button
+                  onClick={() => handleBuyNow(product)}
+                  disabled={loading[product.id]}
+                  className="flex-1 bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   Buy Now
                 </button>
-                <button className="flex-1 border border-black py-2 rounded-lg hover:bg-gray-50 transition">
+                <button
+                  onClick={() => handleAddToCart(product)}
+                  disabled={loading[product.id]}
+                  className="flex-1 border border-black py-2 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   Add to Cart
                 </button>
               </div>
@@ -163,6 +264,25 @@ export default function Shop() {
           </motion.div>
         ))}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-12 flex justify-center gap-2">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`px-4 py-2 rounded-lg ${
+                currentPage === page
+                  ? "bg-black text-white"
+                  : "border border-gray-300 hover:border-gray-400"
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 }
