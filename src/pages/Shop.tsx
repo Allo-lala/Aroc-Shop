@@ -1,70 +1,63 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { supabase, addToCart, CartItem } from '../lib/supabase';
-import { User } from '@supabase/supabase-js';
+import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../lib/supabase';
 import { FiSearch } from 'react-icons/fi';
+import ReactConfetti from 'react-confetti';
+
+const categories = [
+  "All",
+  "Paintings",
+  "Crochets",
+  "Designs",
+  "Ceramics",
+  "Merchandise"
+];
 
 const products = [
   {
     id: 1,
     name: "Abstract Dreams",
     price: 299.99,
-    category: "Original Art",
+    category: "Paintings",
     image: "https://images.pexels.com/photos/1579708/pexels-photo-1579708.jpeg",
-    artist: "Elena Rodriguez",
-    location: "Barcelona, Spain",
-    story: "Inspired by the vibrant energy of Mediterranean sunsets, this piece captures the dynamic interplay of light and shadow in abstract form."
+    story: "Inspired by the vibrant energy of Mediterranean sunsets.",
+    variants: null
   },
   {
     id: 2,
     name: "Artist Series T-Shirt",
     price: 34.99,
-    category: "Apparel",
+    category: "Merchandise",
     image: "https://images.pexels.com/photos/8532616/pexels-photo-8532616.jpeg",
-    artist: "Urban Collective",
-    location: "Berlin, Germany",
-    story: "Each shirt is individually screen printed with designs from our featured artists, making every piece unique."
+    story: "Each shirt is individually screen printed.",
+    variants: {
+      type: "clothing",
+      sizes: ["S", "M", "L", "XL"],
+      colors: ["Black", "White", "Navy", "Pink", "Brown", "Army Green", "Custom"]
+    }
   },
   {
     id: 3,
     name: "Artistic Hoodie",
     price: 59.99,
-    category: "Apparel",
+    category: "Merchandise",
     image: "https://images.pexels.com/photos/6046183/pexels-photo-6046183.jpeg",
-    artist: "Urban Collective",
-    location: "Berlin, Germany",
-    story: "Premium quality hoodies featuring exclusive artwork from our global artist community."
+    story: "Premium quality hoodies featuring exclusive artwork.",
+    variants: {
+      type: "clothing",
+      sizes: ["S", "M", "L", "XL"],
+      colors: ["Black", "Gray", "Navy", "Pink", "Brown", "Army Green", "Custom"]
+    }
   },
   {
     id: 4,
-    name: "Designer Coffee Mug",
-    price: 24.99,
-    category: "Accessories",
+    name: "Ceramic Vase",
+    price: 149.99,
+    category: "Ceramics",
     image: "https://images.pexels.com/photos/1793035/pexels-photo-1793035.jpeg",
-    artist: "Ceramic Studio",
-    location: "Portland, USA",
-    story: "Hand-crafted ceramic mugs featuring wraparound prints of original artwork."
-  },
-  {
-    id: 5,
-    name: "Urban Landscape",
-    price: 449.99,
-    category: "Original Art",
-    image: "https://images.pexels.com/photos/3705539/pexels-photo-3705539.jpeg",
-    artist: "Marcus Chen",
-    location: "Tokyo, Japan",
-    story: "A contemporary take on urban architecture, exploring the intersection of nature and city life."
-  },
-  {
-    id: 6,
-    name: "Artist Cap",
-    price: 29.99,
-    category: "Accessories",
-    image: "https://images.pexels.com/photos/984619/pexels-photo-984619.jpeg",
-    artist: "Urban Collective",
-    location: "Berlin, Germany",
-    story: "Premium embroidered caps featuring minimalist designs from our artist collaborations."
+    story: "Hand-crafted ceramic vase with unique glazing technique.",
+    variants: null
   }
 ];
 
@@ -74,14 +67,18 @@ export default function Shop() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<LoadingState>({});
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [loading, setLoading] = useState<Record<number, boolean>>({});
+  const [selectedVariants, setSelectedVariants] = useState<Record<number, VariantSelection>>({});
+  const [showVariants, setShowVariants] = useState<number | null>(null);
+  const [customColor, setCustomColor] = useState<Record<number, string>>({});
+  const [showConfetti, setShowConfetti] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+      setUser(user ? { id: user.id, email: user.email || '' } : null);
     };
     getUser();
   }, []);
@@ -90,7 +87,6 @@ export default function Shop() {
     .filter(product => selectedCategory === "All" || product.category === selectedCategory)
     .filter(product => 
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.category.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -100,53 +96,86 @@ export default function Shop() {
     currentPage * ITEMS_PER_PAGE
   );
 
+  interface VariantSelection {
+    size?: string;
+    color?: string;
+  }
+
+  const handleVariantChange = (productId: number, type: keyof VariantSelection, value: string) => {
+    setSelectedVariants((prev: Record<number, VariantSelection>) => ({
+      ...prev,
+      [productId]: {
+        ...prev[productId],
+        [type]: value
+      }
+    }));
+  };
+
   interface Product {
     id: number;
     name: string;
     price: number;
     category: string;
     image: string;
-    artist: string;
-    location: string;
     story: string;
+    variants: {
+      type: string;
+      sizes: string[];
+      colors: string[];
+    } | null;
   }
 
-  interface LoadingState {
-    [key: number]: boolean;
+  interface CartItem {
+    id: number;
+    name: string;
+    price: number;
+    image: string;
+    quantity: number;
+    variants: {
+      size?: string;
+      color?: string;
+    } | null;
   }
 
-  const handleAddToCart = async (product: Product): Promise<void> => {
+  const handleBuyNow = async (product: Product): Promise<void> => {
     if (!user) {
       navigate('/auth');
       return;
     }
 
-    setLoading((prev: LoadingState) => ({ ...prev, [product.id]: true }));
+    if (product.variants && (!selectedVariants[product.id]?.size || !selectedVariants[product.id]?.color)) {
+      alert('Please select size and color');
+      return;
+    }
+
+    const finalColor = selectedVariants[product.id]?.color === 'Custom' 
+      ? customColor[product.id] 
+      : selectedVariants[product.id]?.color;
+
+    setLoading(prev => ({ ...prev, [product.id]: true }));
     try {
       const cartItem: CartItem = {
         id: product.id,
         name: product.name,
         price: product.price,
         image: product.image,
-        quantity: 1
+        quantity: 1,
+        variants: product.variants ? {
+          ...selectedVariants[product.id],
+          color: finalColor
+        } : null
       };
-      await addToCart(cartItem);
-      navigate('/cart');
+      await supabase.from('cart').insert([cartItem]);
+      setShowConfetti(true);
+      setTimeout(() => {
+        setShowConfetti(false);
+        navigate('/cart');
+      }, 2000);
     } catch (error) {
-      console.error('Error adding to cart:', error);
+      console.error('Error buying product:', error);
     } finally {
-      setLoading((prev: LoadingState) => ({ ...prev, [product.id]: false }));
+      setLoading(prev => ({ ...prev, [product.id]: false }));
     }
-  };
-
-  const handleBuyNow = async (product: Product) => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    
-    await handleAddToCart(product);
-    navigate('/cart');
   };
 
   return (
@@ -157,12 +186,14 @@ export default function Shop() {
       transition={{ duration: 0.5 }}
       className="container mx-auto px-4 py-8"
     >
+      {showConfetti && <ReactConfetti recycle={false} numberOfPieces={200} />}
+
       {/* Search Bar */}
       <div className="max-w-2xl mx-auto mb-12">
         <div className="relative">
           <input
             type="text"
-            placeholder="Search products, artists, or categories..."
+            placeholder="Search products or categories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-3 pl-12 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
@@ -175,46 +206,19 @@ export default function Shop() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-4">Shop</h1>
         <div className="flex gap-2 flex-wrap">
-          <button 
-            onClick={() => setSelectedCategory("All")}
-            className={`px-4 py-2 rounded-full ${
-              selectedCategory === "All" 
-                ? "bg-black text-white" 
-                : "border border-gray-300 hover:border-gray-400"
-            }`}
-          >
-            All
-          </button>
-          <button 
-            onClick={() => setSelectedCategory("Original Art")}
-            className={`px-4 py-2 rounded-full ${
-              selectedCategory === "Original Art" 
-                ? "bg-black text-white" 
-                : "border border-gray-300 hover:border-gray-400"
-            }`}
-          >
-            Original Art
-          </button>
-          <button 
-            onClick={() => setSelectedCategory("Apparel")}
-            className={`px-4 py-2 rounded-full ${
-              selectedCategory === "Apparel" 
-                ? "bg-black text-white" 
-                : "border border-gray-300 hover:border-gray-400"
-            }`}
-          >
-            Apparel
-          </button>
-          <button 
-            onClick={() => setSelectedCategory("Accessories")}
-            className={`px-4 py-2 rounded-full ${
-              selectedCategory === "Accessories" 
-                ? "bg-black text-white" 
-                : "border border-gray-300 hover:border-gray-400"
-            }`}
-          >
-            Accessories
-          </button>
+          {categories.map(category => (
+            <button 
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`px-4 py-2 rounded-full ${
+                selectedCategory === category 
+                  ? "bg-black text-white" 
+                  : "border border-gray-300 hover:border-gray-400"
+              }`}
+            >
+              {category}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -227,39 +231,95 @@ export default function Shop() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-lg overflow-hidden shadow-lg"
+            className="bg-white rounded-lg overflow-hidden shadow-lg relative group"
+            onMouseEnter={() => product.variants && setShowVariants(product.id)}
+            onMouseLeave={() => setShowVariants(null)}
           >
             <div className="aspect-square overflow-hidden">
               <img
                 src={product.image}
                 alt={product.name}
-                className="w-full h-full object-cover transition hover:scale-105"
+                className="w-full h-full object-cover transition group-hover:scale-105"
               />
             </div>
             <div className="p-6">
               <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
               <p className="text-gray-600 text-lg mb-4">${product.price.toFixed(2)}</p>
-              <div className="mb-4">
-                <p className="text-sm text-gray-500">By {product.artist}</p>
-                <p className="text-sm text-gray-500">{product.location}</p>
-              </div>
               <p className="text-gray-600 mb-4">{product.story}</p>
-              <div className="flex gap-2">
-                <button
+
+              <AnimatePresence>
+                {showVariants === product.id && product.variants && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute inset-0 bg-white/95 p-6 flex flex-col justify-center"
+                  >
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Size</label>
+                        <select
+                          value={selectedVariants[product.id]?.size || ''}
+                          onChange={(e) => handleVariantChange(product.id, 'size', e.target.value)}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                        >
+                          <option value="">Select Size</option>
+                          {product.variants.sizes.map(size => (
+                            <option key={size} value={size}>{size}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Color</label>
+                        <select
+                          value={selectedVariants[product.id]?.color || ''}
+                          onChange={(e) => handleVariantChange(product.id, 'color', e.target.value)}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                        >
+                          <option value="">Select Color</option>
+                          {product.variants.colors.map(color => (
+                            <option key={color} value={color}>{color}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {selectedVariants[product.id]?.color === 'Custom' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Custom Color</label>
+                          <input
+                            type="text"
+                            placeholder="Describe your desired color"
+                            value={customColor[product.id] || ''}
+                            onChange={(e) => setCustomColor(prev => ({
+                              ...prev,
+                              [product.id]: e.target.value
+                            }))}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                          />
+                        </div>
+                      )}
+                      <motion.button
+                        onClick={() => handleBuyNow(product)}
+                        disabled={loading[product.id]}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+                      >
+                        {loading[product.id] ? 'Processing...' : 'Buy Now'}
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {!product.variants && (
+                <motion.button
                   onClick={() => handleBuyNow(product)}
                   disabled={loading[product.id]}
-                  className="flex-1 bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Buy Now
-                </button>
-                <button
-                  onClick={() => handleAddToCart(product)}
-                  disabled={loading[product.id]}
-                  className="flex-1 border border-black py-2 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Add to Cart
-                </button>
-              </div>
+                  {loading[product.id] ? 'Processing...' : 'Buy Now'}
+                </motion.button>
+              )}
             </div>
           </motion.div>
         ))}

@@ -1,25 +1,13 @@
 import { useState, useEffect } from 'react';
+import { User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { motion } from 'framer-motion';
 
-interface Profile {
-  avatar_url: string;
-  nickname: string;
-  shipping_address: string;
-  country: string;
-  email: string;
-}
-
-interface User {
-  id: string;
-  email?: string | null;
-}
-
 export default function Profile() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile>({
+  const [user, setUser] = useState<null | User>(null);
+  const [profile, setProfile] = useState({
     avatar_url: '',
     nickname: '',
     shipping_address: '',
@@ -31,70 +19,42 @@ export default function Profile() {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) {
-        console.error('Failed to get user:', error.message);
-        return;
-      }
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         navigate('/auth');
         return;
       }
       setUser(user);
-
-      const { data: profileData, error: profileError } = await supabase
+      
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
-
-      if (profileError && profileError.code !== 'PGRST116') { // ignore "no rows" error
-        console.error('Failed to fetch profile:', profileError.message);
-      }
-
+      
       if (profileData) {
         setProfile(profileData);
       } else {
-        // If profile doesn't exist, insert a new blank one
-        const { error: insertError } = await supabase.from('profiles').insert([
-          {
-            id: user.id,
-            email: user.email,
-            nickname: '',
-            avatar_url: '',
-            shipping_address: '',
-            country: '',
-          }
-        ]);
-        if (insertError) {
-          console.error('Failed to insert profile:', insertError.message);
-        } else {
-          setProfile({
-            avatar_url: '',
-            nickname: '',
-            shipping_address: '',
-            country: '',
-            email: user.email || '',
-          });
-        }
+        // Initialize profile with email
+        setProfile(prev => ({ ...prev, email: user.email || '' }));
       }
     };
 
     getUser();
   }, [navigate]);
 
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+  interface AvatarUploadEvent extends React.ChangeEvent<HTMLInputElement> {
+    target: HTMLInputElement & { files: FileList | null };
+  }
+
+  const handleAvatarUpload = async (event: AvatarUploadEvent) => {
     try {
       setLoading(true);
       const file = event.target.files?.[0];
       if (!file) return;
 
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
       const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${user?.id}-${Math.random()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -102,14 +62,12 @@ export default function Profile() {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase
-        .storage
+      const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
       setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
       await updateProfile({ avatar_url: publicUrl });
-
     } catch (error) {
       console.error('Error uploading avatar:', error);
       setMessage('Failed to upload avatar');
@@ -118,7 +76,11 @@ export default function Profile() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+  interface InputChangeEvent extends React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> {
+    target: HTMLInputElement | HTMLTextAreaElement & { name: string; value: string };
+  }
+
+  const handleInputChange = (e: InputChangeEvent) => {
     const { name, value } = e.target;
     setProfile(prev => ({ ...prev, [name]: value }));
   };
@@ -145,7 +107,9 @@ export default function Profile() {
     }
   };
 
-  const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e): Promise<void> => {
+  interface SubmitEvent extends React.FormEvent<HTMLFormElement> {}
+
+  const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
     await updateProfile();
   };
@@ -155,13 +119,7 @@ export default function Profile() {
     navigate('/');
   };
 
-  if (!user) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-black"></div>
-      </div>
-    );
-  }
+  if (!user) return null;
 
   return (
     <motion.div
@@ -197,7 +155,7 @@ export default function Profile() {
             <input
               type="text"
               name="nickname"
-              value={profile.nickname}
+              value={profile.nickname || ''}
               onChange={handleInputChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
             />
@@ -208,7 +166,7 @@ export default function Profile() {
             <input
               type="email"
               name="email"
-              value={profile.email}
+              value={profile.email || ''}
               onChange={handleInputChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
             />
@@ -218,7 +176,7 @@ export default function Profile() {
             <label className="block text-sm font-medium text-gray-700">Shipping Address</label>
             <textarea
               name="shipping_address"
-              value={profile.shipping_address}
+              value={profile.shipping_address || ''}
               onChange={handleInputChange}
               rows={3}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
@@ -230,7 +188,7 @@ export default function Profile() {
             <input
               type="text"
               name="country"
-              value={profile.country}
+              value={profile.country || ''}
               onChange={handleInputChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
             />

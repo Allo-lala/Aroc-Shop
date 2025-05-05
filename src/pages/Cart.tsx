@@ -1,27 +1,16 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
+import { PayPalButtons } from "@paypal/react-paypal-js";
+import ReactConfetti from 'react-confetti';
 
 function Cart() {
-  interface CartItem {
-    id: number;
-    name: string;
-    price: number;
-    quantity: number;
-    image: string;
-  }
-  
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartItems, setCartItems] = useState<{ id: number; name: string; price: number; quantity: number; image: string; variants?: { size: string; color: string } }[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [checkoutForm, setCheckoutForm] = useState({
-    cardNumber: '',
-    expiryDate: '',
-    cvv: '',
-    name: ''
-  });
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [paymentComplete, setPaymentComplete] = useState(false);
 
   useEffect(() => {
     const fetchCartItems = async () => {
@@ -54,7 +43,19 @@ function Cart() {
     };
   }, []);
 
-  const handleRemoveItem = async (itemId: number): Promise<void> => {
+  interface CartItem {
+    id: number;
+    name: string;
+    price: number;
+    quantity: number;
+    image: string;
+    variants?: {
+      size: string;
+      color: string;
+    };
+  }
+
+  const handleRemoveItem = async (itemId: CartItem['id']): Promise<void> => {
     await supabase
       .from('cart')
       .delete()
@@ -68,48 +69,56 @@ function Cart() {
 
   const handleUpdateQuantity = async ({ itemId, quantity }: UpdateQuantityParams): Promise<void> => {
     if (quantity > 3) return;
-    
+
     await supabase
       .from('cart')
       .update({ quantity })
       .eq('id', itemId);
   };
 
-  interface CheckoutSubmitEvent extends React.FormEvent<HTMLFormElement> {}
 
-  const handleCheckoutSubmit = async (e: CheckoutSubmitEvent): Promise<void> => {
-    e.preventDefault();
-    // Here you would integrate with your payment processor
-    // For now, we'll just show a success message
-    alert('Order placed successfully!');
-    setShowCheckout(false);
-    
-    // Clear cart after successful checkout
+  const handlePaypalSuccess = async (): Promise<void> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      await supabase
-        .from('cart')
-        .delete()
-        .eq('user_id', user.id);
+      setPaymentComplete(true);
+      setShowConfetti(true);
+      
+      setTimeout(async () => {
+        await supabase
+          .from('cart')
+          .delete()
+          .eq('user_id', user.id);
+          
+        setShowConfetti(false);
+        window.location.href = '/shop';
+      }, 3000);
     }
-  };
-
-  interface CheckoutForm {
-    cardNumber: string;
-    expiryDate: string;
-    cvv: string;
-    name: string;
-  }
-
-  interface InputChangeEvent extends React.ChangeEvent<HTMLInputElement> {}
-
-  const handleInputChange = (e: InputChangeEvent): void => {
-    const { name, value } = e.target;
-    setCheckoutForm((prev: CheckoutForm) => ({ ...prev, [name]: value }));
   };
 
   if (loading) {
     return <div className="container mx-auto px-4 py-8">Loading...</div>;
+  }
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-8 text-center">
+          <img
+            src="https://images.pexels.com/photos/2872879/pexels-photo-2872879.jpeg"
+            alt="Empty cart"
+            className="w-64 h-64 object-cover mx-auto mb-6 rounded-lg"
+          />
+          <h2 className="text-2xl font-bold mb-4">Your cart is empty</h2>
+          <p className="text-gray-600 mb-6">Looks like you haven't added anything to your cart yet.</p>
+          <Link 
+            to="/shop" 
+            className="inline-block bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition"
+          >
+            Start Shopping
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -119,144 +128,102 @@ function Cart() {
       exit={{ opacity: 0 }}
       className="container mx-auto px-4 py-8"
     >
+      {showConfetti && <ReactConfetti recycle={false} numberOfPieces={200} />}
+      
+      <AnimatePresence>
+        {paymentComplete && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
+          >
+            <div className="bg-white p-8 rounded-lg text-center">
+              <h2 className="text-2xl font-bold mb-4">Payment Complete!</h2>
+              <p className="text-gray-600">Thank you for your purchase.</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <h1 className="text-3xl font-bold mb-6">Shopping Cart</h1>
-      {cartItems.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-500">Your cart is empty</p>
-          <Link to="/shop" className="mt-4 inline-block bg-black text-white px-6 py-2 rounded-lg">
-            Continue Shopping
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            {cartItems.map((item) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="bg-white rounded-lg shadow-md p-6 mb-4"
-              >
-                <div className="flex items-center gap-4">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-24 h-24 object-cover rounded-lg"
-                  />
-                  <div className="flex-grow">
-                    <h3 className="text-lg font-semibold">{item.name}</h3>
-                    <p className="text-gray-600">${item.price.toFixed(2)}</p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <select
-                        value={item.quantity}
-                        onChange={(e) => handleUpdateQuantity({ itemId: item.id, quantity: parseInt(e.target.value) })}
-                        className="border rounded-lg px-2 py-1"
-                      >
-                        {[1, 2, 3].map((num) => (
-                          <option key={num} value={num}>{num}</option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => handleRemoveItem(item.id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        Remove
-                      </button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          {cartItems.map((item) => (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="bg-white rounded-lg shadow-md p-6 mb-4"
+            >
+              <div className="flex items-center gap-4">
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-24 h-24 object-cover rounded-lg"
+                />
+                <div className="flex-grow">
+                  <h3 className="text-lg font-semibold">{item.name}</h3>
+                  <p className="text-gray-600">${item.price.toFixed(2)}</p>
+                  {item.variants && (
+                    <div className="text-sm text-gray-500">
+                      <p>Size: {item.variants.size}</p>
+                      <p>Color: {item.variants.color}</p>
                     </div>
+                  )}
+                  <div className="flex items-center gap-4 mt-2">
+                    <select
+                      value={item.quantity}
+                      onChange={(e) => handleUpdateQuantity({ itemId: item.id, quantity: parseInt(e.target.value) })}
+                      className="border rounded-lg px-2 py-1"
+                    >
+                      {[1, 2, 3].map((num) => (
+                        <option key={num} value={num}>{num}</option>
+                      ))}
+                    </select>
+                    <motion.button
+                      onClick={() => handleRemoveItem(item.id)}
+                      whileTap={{ scale: 0.95 }}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      Remove
+                    </motion.button>
                   </div>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-6 h-fit">
-            <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-            <div className="flex justify-between mb-4">
-              <span>Subtotal</span>
-              <span>${total.toFixed(2)}</span>
-            </div>
-            <button 
-              onClick={() => setShowCheckout(true)}
-              className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition"
-            >
-              Proceed to Checkout
-            </button>
-
-            {showCheckout && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
-                onClick={(e) => {
-                  if (e.target === e.currentTarget) setShowCheckout(false);
-                }}
-              >
-                <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                  <h3 className="text-xl font-semibold mb-4">Checkout</h3>
-                  <form onSubmit={handleCheckoutSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Card Holder Name</label>
-                      <input
-                        type="text"
-                        name="name"
-                        value={checkoutForm.name}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Card Number</label>
-                      <input
-                        type="text"
-                        name="cardNumber"
-                        value={checkoutForm.cardNumber}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Expiry Date</label>
-                        <input
-                          type="text"
-                          name="expiryDate"
-                          placeholder="MM/YY"
-                          value={checkoutForm.expiryDate}
-                          onChange={handleInputChange}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">CVV</label>
-                        <input
-                          type="text"
-                          name="cvv"
-                          value={checkoutForm.cvv}
-                          onChange={handleInputChange}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center mt-6">
-                      <span className="font-semibold">Total: ${total.toFixed(2)}</span>
-                      <button
-                        type="submit"
-                        className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition"
-                      >
-                        Pay Now
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </motion.div>
-            )}
-          </div>
+              </div>
+            </motion.div>
+          ))}
         </div>
-      )}
+        <div className="bg-white rounded-lg shadow-md p-6 h-fit">
+          <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+          <div className="flex justify-between mb-4">
+            <span>Subtotal</span>
+            <span>${total.toFixed(2)}</span>
+          </div>
+          <PayPalButtons
+                      createOrder={(_, actions) => {
+                        return actions.order.create({
+                          intent: "CAPTURE",
+                          purchase_units: [
+                            {
+                              amount: {
+                                currency_code: "USD",
+                                value: total.toFixed(2),
+                              },
+                            },
+                          ],
+                        });
+                      }}
+            onApprove={(_, actions) => {
+              if (actions.order) {
+                return actions.order.capture().then(handlePaypalSuccess);
+              }
+              return Promise.reject(new Error("Order actions are undefined."));
+            }}
+          />
+        </div>
+      </div>
     </motion.div>
   );
 }

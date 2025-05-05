@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { BsCart3, BsPerson } from 'react-icons/bs';
+import { BsCart3 } from 'react-icons/bs';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
@@ -41,6 +41,11 @@ export default function Navbar() {
     };
   }, []);
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  };
+
   return (
     <nav className="bg-white shadow-lg">
       <div className="container mx-auto px-4">
@@ -60,9 +65,9 @@ export default function Navbar() {
               )}
             </Link>
             {user ? (
-              <Link to="/profile" className="text-gray-700 hover:text-gray-900">
-                <BsPerson className="w-6 h-6" />
-              </Link>
+              <button onClick={handleSignOut} className="text-gray-700 hover:text-gray-900">
+                Sign Out
+              </button>
             ) : (
               <Link to="/auth" className="text-gray-700 hover:text-gray-900">Sign In</Link>
             )}

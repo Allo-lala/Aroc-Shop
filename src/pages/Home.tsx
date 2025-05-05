@@ -32,7 +32,7 @@ export default function Home() {
             transition={{ delay: 0.3 }}
             className="text-5xl md:text-7xl font-bold text-white mb-6"
           >
-            Welcome To Our  Market
+            Welcome To Our Eco Friendly Market
           </motion.h1>
           <motion.p 
             initial={{ y: 20, opacity: 0 }}
@@ -146,7 +146,7 @@ export default function Home() {
               />
             </div>
             <h3 className="font-semibold mb-2">Crochets</h3>
-            <p className="text-gray-600">$299.99</p>
+            {/* <p className="text-gray-600">$299.99</p> */}
           </motion.div>
           <motion.div 
             initial={{ y: 20, opacity: 0 }}
@@ -162,8 +162,8 @@ export default function Home() {
                 className="w-full h-full object-cover transition group-hover:scale-105"
               />
             </div>
-            <h3 className="font-semibold mb-2"> T-Shirt</h3>
-            <p className="text-gray-600">$34.99</p>
+            <h3 className="font-semibold mb-2"> T-Shirts</h3>
+            {/* <p className="text-gray-600">$34.99</p> */}
           </motion.div>
           <motion.div 
             initial={{ y: 20, opacity: 0 }}
@@ -179,8 +179,8 @@ export default function Home() {
                 className="w-full h-full object-cover transition group-hover:scale-105"
               />
             </div>
-            <h3 className="font-semibold mb-2"> Hoodie</h3>
-            <p className="text-gray-600">$59.99</p>
+            <h3 className="font-semibold mb-2"> Hoodies</h3>
+            {/* <p className="text-gray-600">$59.99</p> */}
           </motion.div>
           <motion.div 
             initial={{ y: 20, opacity: 0 }}
@@ -196,8 +196,8 @@ export default function Home() {
                 className="w-full h-full object-cover transition group-hover:scale-105"
               />
             </div>
-            <h3 className="font-semibold mb-2">Bucket Hat</h3>
-            <p className="text-gray-600">$24.99</p>
+            <h3 className="font-semibold mb-2">Bucket Hats</h3>
+            {/* <p className="text-gray-600">$24.99</p> */}
           </motion.div>
         </div>
       </section>
