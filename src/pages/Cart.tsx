@@ -140,7 +140,7 @@ function Cart() {
           >
             <div className="bg-white p-8 rounded-lg text-center">
               <h2 className="text-2xl font-bold mb-4">Payment Complete!</h2>
-              <p className="text-gray-600">Thank you for your purchase.</p>
+              <p className="text-gray-600">Thank you for supporting Aroc.</p>
             </div>
           </motion.div>
         )}

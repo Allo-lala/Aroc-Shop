@@ -26,15 +26,15 @@ const products = [
   },
   {
     id: 2,
-    name: "Artist Series T-Shirt",
+    name: "T-Shirt",
     price: 34.99,
     category: "Merchandise",
     image: "https://images.pexels.com/photos/8532616/pexels-photo-8532616.jpeg",
-    story: "Each shirt is individually screen printed.",
+    story: " ",
     variants: {
       type: "clothing",
       sizes: ["S", "M", "L", "XL"],
-      colors: ["Black", "White", "Navy", "Pink", "Brown", "Army Green", "Custom"]
+      colors: ["Black", "White", "Beige", "Pink", "Custom"]
     }
   },
   {
@@ -42,12 +42,12 @@ const products = [
     name: "Artistic Hoodie",
     price: 59.99,
     category: "Merchandise",
-    image: "https://images.pexels.com/photos/6046183/pexels-photo-6046183.jpeg",
-    story: "Premium quality hoodies featuring exclusive artwork.",
+    image: "https://images.pexels.com/photos/8217406/pexels-photo-8217406.jpeg?auto=compress&cs=tinysrgb&w=600",
+    story: " ",
     variants: {
       type: "clothing",
-      sizes: ["S", "M", "L", "XL"],
-      colors: ["Black", "Gray", "Navy", "Pink", "Brown", "Army Green", "Custom"]
+      sizes: ["S", "M", "L", "XL", "XXL", "XXXL"],
+      colors: ["Black", "Gray", "Beige", "Pink", "Brown", "Army Green", "Custom"]
     }
   },
   {
