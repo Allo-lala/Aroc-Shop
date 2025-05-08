@@ -33,7 +33,7 @@ const products = [
     story: " ",
     variants: {
       type: "clothing",
-      sizes: ["S", "M", "L", "XL"],
+      sizes: ["S", "M", "L", "XL", "XXL", "XXXL"],
       colors: ["Black", "White", "Beige", "Pink", "Custom"]
     }
   },
@@ -263,7 +263,7 @@ export default function Shop() {
                           onChange={(e) => handleVariantChange(product.id, 'size', e.target.value)}
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                         >
-                          <option value="">Select Size</option>
+                          <option value=""selected disabled hidden>Select Size</option>
                           {product.variants.sizes.map(size => (
                             <option key={size} value={size}>{size}</option>
                           ))}
