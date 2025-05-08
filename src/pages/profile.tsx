@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js'; // Import User type from Supabase library
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { motion } from 'framer-motion';
@@ -47,7 +47,7 @@ export default function Profile() {
     target: HTMLInputElement & { files: FileList | null };
   }
 
-  const handleAvatarUpload = async (event: AvatarUploadEvent) => {
+  const handleAvatarUpload = async (event: AvatarUploadEvent): Promise<void> => {
     try {
       setLoading(true);
       const file = event.target.files?.[0];
@@ -80,7 +80,7 @@ export default function Profile() {
     target: HTMLInputElement | HTMLTextAreaElement & { name: string; value: string };
   }
 
-  const handleInputChange = (e: InputChangeEvent) => {
+  const handleInputChange = (e: InputChangeEvent): void => {
     const { name, value } = e.target;
     setProfile(prev => ({ ...prev, [name]: value }));
   };
@@ -109,7 +109,7 @@ export default function Profile() {
 
   interface SubmitEvent extends React.FormEvent<HTMLFormElement> {}
 
-  const handleSubmit = async (e: SubmitEvent) => {
+  const handleSubmit = async (e: SubmitEvent): Promise<void> => {
     e.preventDefault();
     await updateProfile();
   };
