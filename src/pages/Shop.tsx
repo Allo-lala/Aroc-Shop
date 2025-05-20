@@ -11,7 +11,8 @@ const categories = [
   "Crochets",
   "Designs",
   "Ceramics",
-  "Merchandise"
+  "Merchandise",
+  "Totes Bags",
 ];
 
 const products = [
@@ -20,7 +21,7 @@ const products = [
     name: "Abstract Dreams",
     price: 299.99,
     category: "Paintings",
-    image: "https://images.pexels.com/photos/1579708/pexels-photo-1579708.jpeg",
+    image: "https://images.pexels.com/photos/139764/pexels-photo-139764.jpeg?auto=compress&cs=tinysrgb&w=600",
     story: "Inspired by the vibrant energy of Mediterranean sunsets.",
     variants: null
   },
@@ -55,9 +56,22 @@ const products = [
     name: "Ceramic Vase",
     price: 149.99,
     category: "Ceramics",
-    image: "https://images.pexels.com/photos/1793035/pexels-photo-1793035.jpeg",
+    image: "https://images.pexels.com/photos/2130570/pexels-photo-2130570.jpeg?auto=compress&cs=tinysrgb&w=600",
     story: "Hand-crafted ceramic vase with unique glazing technique.",
     variants: null
+  },
+  {
+    id: 5,
+    name: "T-Totes Bag",
+    price: 34.99,
+    category: "Totes Bags",
+    image: "https://images.pexels.com/photos/1214212/pexels-photo-1214212.jpeg?auto=compress&cs=tinysrgb&w=600",
+    story: " ",
+    variants: {
+      type: "bag",
+      sizes: ["S", "M", "L", "XL"],
+      colors: ["Black", "Brown", "Beige", "Custom"]
+    }
   }
 ];
 
@@ -287,7 +301,7 @@ export default function Shop() {
                           <label className="block text-sm font-medium text-gray-700">Custom Color</label>
                           <input
                             type="text"
-                            placeholder="Describe your desired color"
+                            placeholder="Describe your preferances"
                             value={customColor[product.id] || ''}
                             onChange={(e) => setCustomColor(prev => ({
                               ...prev,
