@@ -277,7 +277,7 @@ export default function Shop() {
                           onChange={(e) => handleVariantChange(product.id, 'size', e.target.value)}
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                         >
-                          <option value=""selected disabled hidden>Select Size</option>
+                          <option value=""disabled hidden>Select Size</option>
                           {product.variants.sizes.map(size => (
                             <option key={size} value={size}>{size}</option>
                           ))}
@@ -290,7 +290,7 @@ export default function Shop() {
                           onChange={(e) => handleVariantChange(product.id, 'color', e.target.value)}
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                         >
-                          <option value="">Select Color</option>
+                          <option value=""disabled hidden>Select Color</option>
                           {product.variants.colors.map(color => (
                             <option key={color} value={color}>{color}</option>
                           ))}

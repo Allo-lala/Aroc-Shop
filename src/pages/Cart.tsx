@@ -1,102 +1,135 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PayPalButtons } from "@paypal/react-paypal-js";
 import ReactConfetti from 'react-confetti';
+import type { CartItem, Product } from '../lib/supabase';
+import { FiPlus, FiMinus, FiTrash2 } from 'react-icons/fi';
+
+interface CartItemWithProduct extends CartItem {
+  products: Product;
+}
 
 function Cart() {
-  const [cartItems, setCartItems] = useState<{ id: number; name: string; price: number; quantity: number; image: string; variants?: { size: string; color: string } }[]>([]);
+  const navigate = useNavigate();
+  const [cartItems, setCartItems] = useState<CartItemWithProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
+  const [showCardForm, setShowCardForm] = useState(false);
 
   useEffect(() => {
-    const fetchCartItems = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+  fetchCartItems();
+}, []);
 
-      const { data: items } = await supabase
-        .from('cart')
-        .select('*')
-        .eq('user_id', user.id);
-
-      setCartItems(items || []);
-      setTotal(items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0);
-      setLoading(false);
-    };
-
-    fetchCartItems();
-
-    const cartSubscription = supabase
-      .channel('cart_changes')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'cart' 
-      }, fetchCartItems)
-      .subscribe();
-
-    return () => {
-      cartSubscription.unsubscribe();
-    };
-  }, []);
-
-  interface CartItem {
-    id: number;
-    name: string;
-    price: number;
-    quantity: number;
-    image: string;
-    variants?: {
-      size: string;
-      color: string;
-    };
-  }
-
-  const handleRemoveItem = async (itemId: CartItem['id']): Promise<void> => {
-    await supabase
-      .from('cart')
-      .delete()
-      .eq('id', itemId);
-  };
-
-  interface UpdateQuantityParams {
-    itemId: number;
-    quantity: number;
-  }
-
-  const handleUpdateQuantity = async ({ itemId, quantity }: UpdateQuantityParams): Promise<void> => {
-    if (quantity > 3) return;
-
-    await supabase
-      .from('cart')
-      .update({ quantity })
-      .eq('id', itemId);
-  };
-
-
-  const handlePaypalSuccess = async (): Promise<void> => {
+const fetchCartItems = async () => {
+  try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setPaymentComplete(true);
-      setShowConfetti(true);
-      
-      setTimeout(async () => {
+
+    if (!user) {
+      setCartItems([]);
+      setTotal(0);
+      setLoading(false);
+      return;
+    }
+
+    const { data: items, error } = await supabase
+      .from('cart')
+      .select('*, products(*)')  // <=== include product info here
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+
+    setCartItems(items || []);
+    setTotal(items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0);
+  } catch (error) {
+    console.error('Error fetching cart items:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
+  const handleQuantityChange = async (itemId: string, change: number) => {
+    const item = cartItems.find(item => item.id === itemId);
+    if (!item) return;
+
+    const newQuantity = item.quantity + change;
+    if (newQuantity < 1 || newQuantity > 10) return;
+
+    try {
+      await supabase
+        .from('cart')
+        .update({ quantity: newQuantity })
+        .eq('id', itemId);
+      fetchCartItems();
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+    }
+  };
+
+  const handleRemoveItem = async (itemId: string) => {
+    try {
+      await supabase
+        .from('cart')
+        .delete()
+        .eq('id', itemId);
+      fetchCartItems();
+    } catch (error) {
+      console.error('Error removing item:', error);
+    }
+  };
+
+  const handlePaypalSuccess = async (details: any) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/auth');
+        return;
+      }
+
+      // Create order
+      const { data: order } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          total_amount: total,
+          status: 'completed',
+          payment_method: 'paypal',
+          payment_id: details.id
+        })
+        .select()
+        .single();
+
+      if (order) {
         await supabase
           .from('cart')
           .delete()
           .eq('user_id', user.id);
-          
-        setShowConfetti(false);
-        window.location.href = '/shop';
-      }, 3000);
+        setPaymentComplete(true);
+        setShowConfetti(true);
+        
+        setTimeout(() => {
+          setShowConfetti(false);
+          navigate('/shop');
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error processing order:', error);
     }
   };
 
   if (loading) {
-    return <div className="container mx-auto px-4 py-8">Loading...</div>;
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+        </div>
+      </div>
+    );
   }
 
   if (cartItems.length === 0) {
@@ -140,13 +173,14 @@ function Cart() {
           >
             <div className="bg-white p-8 rounded-lg text-center">
               <h2 className="text-2xl font-bold mb-4">Payment Complete!</h2>
-              <p className="text-gray-600">Thank you for supporting Aroc.</p>
+              <p className="text-gray-600">Thank you for supporting Aroc</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <h1 className="text-3xl font-bold mb-6">Shopping Cart</h1>
+      <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           {cartItems.map((item) => (
@@ -159,69 +193,171 @@ function Cart() {
             >
               <div className="flex items-center gap-4">
                 <img
-                  src={item.image}
-                  alt={item.name}
+                  src={item.products.image}
+                  alt={item.products.name}
                   className="w-24 h-24 object-cover rounded-lg"
                 />
                 <div className="flex-grow">
-                  <h3 className="text-lg font-semibold">{item.name}</h3>
+                  <h3 className="text-lg font-semibold">{item.products.name}</h3>
                   <p className="text-gray-600">${item.price.toFixed(2)}</p>
-                  {item.variants && (
-                    <div className="text-sm text-gray-500">
-                      <p>Size: {item.variants.size}</p>
-                      <p>Color: {item.variants.color}</p>
+                  
+                  {!item.products.is_merchandise && (
+                    <div className="text-sm text-gray-500 mt-2">
+                      <p>Artist: {item.products.artist_name}</p>
+                      <p>Location: {item.products.location}</p>
                     </div>
                   )}
-                  <div className="flex items-center gap-4 mt-2">
-                    <select
-                      value={item.quantity}
-                      onChange={(e) => handleUpdateQuantity({ itemId: item.id, quantity: parseInt(e.target.value) })}
-                      className="border rounded-lg px-2 py-1"
-                    >
-                      {[1, 2, 3].map((num) => (
-                        <option key={num} value={num}>{num}</option>
-                      ))}
-                    </select>
-                    <motion.button
+
+                  <div className="flex items-center gap-4 mt-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleQuantityChange(item.id, -1)}
+                        className="p-1 rounded-full hover:bg-gray-100"
+                      >
+                        <FiMinus />
+                      </button>
+                      <span className="w-8 text-center">{item.quantity}</span>
+                      <button
+                        onClick={() => handleQuantityChange(item.id, 1)}
+                        className="p-1 rounded-full hover:bg-gray-100"
+                      >
+                        <FiPlus />
+                      </button>
+                    </div>
+                    <button
                       onClick={() => handleRemoveItem(item.id)}
-                      whileTap={{ scale: 0.95 }}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700 flex items-center gap-1"
                     >
-                      Remove
-                    </motion.button>
+                      <FiTrash2 />
+                      <span>Remove</span>
+                    </button>
                   </div>
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
+
         <div className="bg-white rounded-lg shadow-md p-6 h-fit">
           <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-          <div className="flex justify-between mb-4">
-            <span>Subtotal</span>
-            <span>${total.toFixed(2)}</span>
+          
+          <div className="space-y-3 mb-6">
+            <div className="flex justify-between mb-4">
+              <span>Subtotal</span>
+              <span>${total.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Shipping</span>
+              <span>Free</span>
+            </div>
+            <div className="border-t pt-3">
+              <div className="flex justify-between font-semibold">
+                <span>Total</span>
+                <span>${total.toFixed(2)}</span>
+              </div>
+            </div>
           </div>
-          <PayPalButtons
-                      createOrder={(_, actions) => {
-                        return actions.order.create({
-                          intent: "CAPTURE",
-                          purchase_units: [
-                            {
-                              amount: {
-                                currency_code: "USD",
-                                value: total.toFixed(2),
-                              },
-                            },
-                          ],
-                        });
-                      }}
-            onApprove={(_, actions) => {
-              if (actions.order) {
-                return actions.order.capture().then(handlePaypalSuccess);
-              }
-              return Promise.reject(new Error("Order actions are undefined."));
-            }}
-          />
+
+          <div className="space-y-4">
+            <PayPalButtons
+              createOrder={() => {
+                return Promise.resolve(
+                  JSON.stringify({
+                    purchase_units: [
+                      {
+                        amount: {
+                          value: total.toFixed(2),
+                        },
+                      },
+                    ],
+                  })
+                );
+              }}
+              onApprove={(actions) => {
+                return new Promise<void>((resolve, reject) => {
+                  if (actions.orderID) {
+                    supabase
+                      .from('orders')
+                      .select()
+                      .eq('payment_id', actions.orderID)
+                      .single()
+                      .then(() => {
+                        handlePaypalSuccess({ id: actions.orderID });
+                        resolve();
+                      }, (error) => {
+                        console.error('Error fetching order:', error);
+                        reject(error);
+                      });
+                  } else {
+                    console.error('Order ID is undefined.');
+                    reject('Order ID is undefined.');
+                  }
+                });
+              }}
+            />
+
+            <button
+              onClick={() => setShowCardForm(!showCardForm)}
+              className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition"
+            >
+              {showCardForm ? 'Hide Card Form' : 'Pay with Card'}
+            </button>
+
+            <AnimatePresence>
+              {showCardForm && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Card Number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="1234 5678 9012 3456"
+                      className="w-full px-3 py-2 border rounded-lg"
+                      disabled
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Expiry Date
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="MM/YY"
+                        className="w-full px-3 py-2 border rounded-lg"
+                        disabled
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        CVC
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="123"
+                        className="w-full px-3 py-2 border rounded-lg"
+                        disabled
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    disabled
+                    className="w-full bg-gray-400 text-white py-3 rounded-lg cursor-not-allowed"
+                  >
+                    Card Payment Coming Soon
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </motion.div>
