@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "../lib/supabase";
-import { FiEye, FiEyeOff, FiMail } from 'react-icons/fi';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 import { BsApple } from 'react-icons/bs';
 
@@ -168,7 +168,7 @@ export default function Auth() {
                   value={formData.firstName}
                   onChange={handleInputChange}
                   required
-                  className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-10 py-3 text-lg"
+                  className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-7 py-2 text-lg"
                 />
               </div>
 
@@ -180,7 +180,7 @@ export default function Auth() {
                   value={formData.lastName}
                   onChange={handleInputChange}
                   required
-                  className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-10 py-3 text-lg"
+                  className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-7 py-2 text-lg"
                 />
               </div>
             </div>
@@ -195,9 +195,10 @@ export default function Auth() {
                 value={formData.email}
                 onChange={handleInputChange}
                 required
-                className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-10 py-3 text-lg"
+                placeholder="you@example.com"
+                className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-7 py-2 text-lg placeholder:text-gray-400 placeholder:text-sm sm:placeholder:text-base  "
               />
-              <FiMail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              {/* <FiMail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" /> */}
             </div>
           </div>
 
@@ -210,7 +211,8 @@ export default function Auth() {
                 value={formData.password}
                 onChange={handleInputChange}
                 required
-                className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-10 py-3 text-lg"
+                placeholder="..........."
+                className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-7 py-2 text-lg placeholder:text-gray-400 placeholder:text-sm sm:placeholder:text-base "
               />
               <button
                 type="button"
@@ -232,7 +234,7 @@ export default function Auth() {
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   required
-                  className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-10 py-3 text-lg"
+                  className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-7 py-2 text-lg"
                 />
                 <button
                   type="button"
