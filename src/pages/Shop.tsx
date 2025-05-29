@@ -295,7 +295,10 @@ function Shop() {
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                     >
                       <option value="">Select Color</option>
-                      {[...product.variants.colors, 'Custom'].map(color => (
+                      {[
+                        ...product.variants.colors.filter((color) => color !== 'Custom'),
+                        'Custom',
+                      ].map((color) => (
                         <option key={color} value={color}>{color}</option>
                       ))}
                     </select>

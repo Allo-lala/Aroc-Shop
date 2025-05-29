@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { Link, useNavigate } from 'react-router-dom';
-import { PayPalButtons } from "@paypal/react-paypal-js";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import ReactConfetti from 'react-confetti';
 import type { CartItem, Product } from '../lib/supabase';
 import { FiPlus, FiMinus, FiTrash2 } from 'react-icons/fi';
@@ -276,42 +276,44 @@ function Cart() {
           </div>
 
           <div className="space-y-4">
-            <PayPalButtons
-              createOrder={() => {
-                return Promise.resolve(
-                  JSON.stringify({
-                    purchase_units: [
-                      {
-                        amount: {
-                          value: total.toFixed(2),
+            <PayPalScriptProvider options={{ clientId: "AW6cg6fCQcDpX_Y8BsjIQ1S9JmNxe0iHpLu5Ug7q14HxRJM6brAjrL7zo9HVUQNB-JfSMozTlAswxzE1" }}>
+              <PayPalButtons
+                createOrder={() => {
+                  return Promise.resolve(
+                    JSON.stringify({
+                      purchase_units: [
+                        {
+                          amount: {
+                            value: total.toFixed(2),
+                          },
                         },
-                      },
-                    ],
-                  })
-                );
-              }}
-              onApprove={(actions) => {
-                return new Promise<void>((resolve, reject) => {
-                  if (actions.orderID) {
-                    supabase
-                      .from('orders')
-                      .select()
-                      .eq('payment_id', actions.orderID)
-                      .single()
-                      .then(() => {
-                        handlePaypalSuccess({ id: actions.orderID });
-                        resolve();
-                      }, (error) => {
-                        console.error('Error fetching order:', error);
-                        reject(error);
-                      });
-                  } else {
-                    console.error('Order ID is undefined.');
-                    reject('Order ID is undefined.');
-                  }
-                });
-              }}
-            />
+                      ],
+                    })
+                  );
+                }}
+                onApprove={(actions) => {
+                  return new Promise<void>((resolve, reject) => {
+                    if (actions.orderID) {
+                      supabase
+                        .from('orders')
+                        .select()
+                        .eq('payment_id', actions.orderID)
+                        .single()
+                        .then(() => {
+                          handlePaypalSuccess({ id: actions.orderID });
+                          resolve();
+                        }, (error) => {
+                          console.error('Error fetching order:', error);
+                          reject(error);
+                        });
+                    } else {
+                      console.error('Order ID is undefined.');
+                      reject('Order ID is undefined.');
+                    }
+                  });
+                }}
+              />
+            </PayPalScriptProvider>
 
             <button
               onClick={() => setShowCardForm(!showCardForm)}
