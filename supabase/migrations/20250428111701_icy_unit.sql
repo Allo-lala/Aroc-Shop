@@ -1,3 +1,19 @@
+/*
+  # Create cart table for storing user cart items
+
+  1. New Tables
+    - `cart`
+      - `id` (uuid, primary key)
+      - `user_id` (uuid, references auth.users)
+      - `product_id` (integer)
+      - `quantity` (integer)
+      - `price` (numeric)
+      - `created_at` (timestamp)
+
+  2. Security
+    - Enable RLS on `cart` table
+    - Add policies for authenticated users to manage their cart items
+*/
 
 CREATE TABLE IF NOT EXISTS cart (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

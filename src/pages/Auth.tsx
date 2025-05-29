@@ -211,7 +211,7 @@ export default function Auth() {
                 value={formData.password}
                 onChange={handleInputChange}
                 required
-                placeholder="..........."
+                placeholder="•••••••••••"
                 className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-7 py-2 text-lg placeholder:text-gray-400 placeholder:text-sm sm:placeholder:text-base "
               />
               <button
@@ -234,6 +234,7 @@ export default function Auth() {
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   required
+                  placeholder="•••••••••••"
                   className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-7 py-2 text-lg"
                 />
                 <button

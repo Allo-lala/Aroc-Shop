@@ -22,6 +22,8 @@ export type CartItem = {
   quantity: number;
   price: number;
   created_at?: string;
+  size?: string;
+  color?: string;
 };
 
 export type Product = {
@@ -35,9 +37,13 @@ export type Product = {
   location?: string;
   is_merchandise: boolean;
   active: boolean;
+  variants?: {
+    sizes: string[];
+    colors: string[];
+  };
 };
 
-export const addToCart = async (productId: string, quantity: number = 1) => {
+export const addToCart = async (productId: string, quantity: number = 1, size?: string, color?: string) => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
@@ -55,7 +61,9 @@ export const addToCart = async (productId: string, quantity: number = 1) => {
       user_id: user.id,
       product_id: productId,
       quantity,
-      price: product.price
+      price: product.price,
+      size,
+      color
     });
 
   if (error) throw error;
@@ -78,7 +86,8 @@ export const getCart = async () => {
         description,
         artist_name,
         location,
-        is_merchandise
+        is_merchandise,
+        variants
       )
     `)
     .eq('user_id', user.id);

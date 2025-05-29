@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../lib/supabase';
-import { FiSearch } from 'react-icons/fi';
+import { motion } from 'framer-motion';
+import { supabase, addToCart } from '../lib/supabase';
+import { FiSearch, FiShoppingCart } from 'react-icons/fi';
 import ReactConfetti from 'react-confetti';
+import type { Product as BaseProduct } from '../lib/supabase';
+
+interface Product extends BaseProduct {
+  variants?: {
+    sizes: string[];
+    colors: string[];
+  };
+}
 
 const categories = [
   "All",
@@ -15,79 +23,20 @@ const categories = [
   "Totes Bags",
 ];
 
-const products = [
-  {
-    id: 1,
-    name: "Abstract Dreams",
-    price: 299.99,
-    category: "Paintings",
-    image: "https://images.pexels.com/photos/139764/pexels-photo-139764.jpeg?auto=compress&cs=tinysrgb&w=600",
-    story: "Inspired by the vibrant energy of Mediterranean sunsets.",
-    variants: null
-  },
-  {
-    id: 2,
-    name: "T-Shirt",
-    price: 34.99,
-    category: "Merchandise",
-    image: "https://images.pexels.com/photos/8532616/pexels-photo-8532616.jpeg",
-    story: " ",
-    variants: {
-      type: "clothing",
-      sizes: ["S", "M", "L", "XL", "XXL", "XXXL"],
-      colors: ["Black", "White", "Beige", "Pink", "Custom"]
-    }
-  },
-  {
-    id: 3,
-    name: "Artistic Hoodie",
-    price: 59.99,
-    category: "Merchandise",
-    image: "https://images.pexels.com/photos/8217406/pexels-photo-8217406.jpeg?auto=compress&cs=tinysrgb&w=600",
-    story: " ",
-    variants: {
-      type: "clothing",
-      sizes: ["S", "M", "L", "XL", "XXL", "XXXL"],
-      colors: ["Black", "Gray", "Beige", "Pink", "Brown", "Army Green", "Custom"]
-    }
-  },
-  {
-    id: 4,
-    name: "Ceramic Vase",
-    price: 149.99,
-    category: "Ceramics",
-    image: "https://images.pexels.com/photos/2130570/pexels-photo-2130570.jpeg?auto=compress&cs=tinysrgb&w=600",
-    story: "Hand-crafted ceramic vase with unique glazing technique.",
-    variants: null
-  },
-  {
-    id: 5,
-    name: "T-Totes Bag",
-    price: 34.99,
-    category: "Totes Bags",
-    image: "https://images.pexels.com/photos/1214212/pexels-photo-1214212.jpeg?auto=compress&cs=tinysrgb&w=600",
-    story: " ",
-    variants: {
-      type: "bag",
-      sizes: ["S", "M", "L", "XL"],
-      colors: ["Black", "Brown", "Beige", "Custom"]
-    }
-  }
-];
-
-const ITEMS_PER_PAGE = 6;
-
-export default function Shop() {
+function Shop() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
-  const [loading, setLoading] = useState<Record<number, boolean>>({});
-  const [selectedVariants, setSelectedVariants] = useState<Record<number, VariantSelection>>({});
-  const [showVariants, setShowVariants] = useState<number | null>(null);
-  const [customColor, setCustomColor] = useState<Record<number, string>>({});
+  const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, VariantSelection>>({});
+  const [customColors, setCustomColors] = useState<Record<string, string>>({});
+  const [products, setProducts] = useState<Product[]>([]);
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
   const [showConfetti, setShowConfetti] = useState(false);
   const navigate = useNavigate();
+
+  const ITEMS_PER_PAGE = 6;
 
   useEffect(() => {
     const getUser = async () => {
@@ -95,7 +44,21 @@ export default function Shop() {
       setUser(user ? { id: user.id, email: user.email || '' } : null);
     };
     getUser();
+    fetchProducts();
   }, []);
+
+  const fetchProducts = async () => {
+    const { data } = await supabase
+      .from('products')
+      .select('*')
+      .eq('active', true);
+    setProducts(data || []);
+  };
+
+  interface VariantSelection {
+    size?: string;
+    color?: string;
+  }
 
   const filteredProducts = products
     .filter(product => selectedCategory === "All" || product.category === selectedCategory)
@@ -110,86 +73,111 @@ export default function Shop() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  interface VariantSelection {
-    size?: string;
-    color?: string;
-  }
-
-  const handleVariantChange = (productId: number, type: keyof VariantSelection, value: string) => {
-    setSelectedVariants((prev: Record<number, VariantSelection>) => ({
+  const handleVariantChange = (productId: string, type: keyof VariantSelection, value: string) => {
+    setSelectedVariants(prev => ({
       ...prev,
       [productId]: {
         ...prev[productId],
         [type]: value
       }
     }));
+
+    // Reset custom color when changing color selection
+    if (type === 'color' && value !== 'Custom') {
+      setCustomColors(prev => {
+        const newColors = { ...prev };
+        delete newColors[productId];
+        return newColors;
+      });
+    }
   };
 
-  interface Product {
-    id: number;
-    name: string;
-    price: number;
-    category: string;
-    image: string;
-    story: string;
-    variants: {
-      type: string;
-      sizes: string[];
-      colors: string[];
-    } | null;
-  }
+  const handleCustomColorChange = (productId: string, value: string) => {
+    setCustomColors(prev => ({
+      ...prev,
+      [productId]: value
+    }));
+  };
 
-  interface CartItem {
-    id: number;
-    name: string;
-    price: number;
-    image: string;
-    quantity: number;
-    variants: {
-      size?: string;
-      color?: string;
-    } | null;
-  }
+  const getEffectiveColor = (productId: string) => {
+    const variant = selectedVariants[productId];
+    if (variant?.color === 'Custom') {
+      return customColors[productId] || '';
+    }
+    return variant?.color || '';
+  };
 
-  const handleBuyNow = async (product: Product): Promise<void> => {
+  const handleAddToCart = async (product: Product) => {
     if (!user) {
       navigate('/auth');
       return;
     }
 
-    if (product.variants && (!selectedVariants[product.id]?.size || !selectedVariants[product.id]?.color)) {
-      alert('Please select size and color');
-      return;
+    if (product.is_merchandise) {
+      const effectiveColor = getEffectiveColor(product.id);
+      if (!selectedVariants[product.id]?.size || !effectiveColor) {
+        alert('Please select size and color');
+        return;
+      }
     }
-
-    const finalColor = selectedVariants[product.id]?.color === 'Custom' 
-      ? customColor[product.id] 
-      : selectedVariants[product.id]?.color;
 
     setLoading(prev => ({ ...prev, [product.id]: true }));
     try {
-      const cartItem: CartItem = {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        quantity: 1,
-        variants: product.variants ? {
-          ...selectedVariants[product.id],
-          color: finalColor
-        } : null
-      };
-      await supabase.from('cart').insert([cartItem]);
-      setShowConfetti(true);
-      setTimeout(() => {
-        setShowConfetti(false);
-        navigate('/cart');
-      }, 2000);
+      await addToCart(
+        product.id,
+        1,
+        selectedVariants[product.id]?.size,
+        getEffectiveColor(product.id)
+      );
+      showSuccessAnimation();
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, [product.id]: false }));
+    }
+  };
+
+  const handleBuyNow = async (product: Product) => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    if (product.is_merchandise) {
+      const effectiveColor = getEffectiveColor(product.id);
+      if (!selectedVariants[product.id]?.size || !effectiveColor) {
+        alert('Please select size and color');
+        return;
+      }
+    }
+
+    setLoading(prev => ({ ...prev, [product.id]: true }));
+    try {
+      await addToCart(
+        product.id,
+        1,
+        selectedVariants[product.id]?.size,
+        getEffectiveColor(product.id)
+      );
+      showSuccessAnimation();
+      setTimeout(() => navigate('/cart'), 1000);
     } catch (error) {
       console.error('Error buying product:', error);
     } finally {
       setLoading(prev => ({ ...prev, [product.id]: false }));
     }
+  };
+
+  const showSuccessAnimation = () => {
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 2000);
+  };
+
+  const toggleDescription = (productId: string) => {
+    setExpandedDescriptions(prev => ({
+      ...prev,
+      [productId]: !prev[productId]
+    }));
   };
 
   return (
@@ -245,9 +233,7 @@ export default function Shop() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-lg overflow-hidden shadow-lg relative group"
-            onMouseEnter={() => product.variants && setShowVariants(product.id)}
-            onMouseLeave={() => setShowVariants(null)}
+            className="bg-white rounded-lg overflow-hidden shadow-lg relative"
           >
             <div className="aspect-square overflow-hidden">
               <img
@@ -259,81 +245,95 @@ export default function Shop() {
             <div className="p-6">
               <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
               <p className="text-gray-600 text-lg mb-4">${product.price.toFixed(2)}</p>
-              <p className="text-gray-600 mb-4">{product.story}</p>
+              
+              {!product.is_merchandise && product.description && (
+                <div className="mb-4">
+                  <p className="text-gray-600">
+                    {expandedDescriptions[product.id]
+                      ? product.description
+                      : `${product.description.slice(0, 100)}${product.description.length > 100 ? '...' : ''}`
+                    }
+                  </p>
+                  {product.description.length > 100 && (
+                    <button
+                      onClick={() => toggleDescription(product.id)}
+                      className="text-black hover:underline mt-1 text-sm"
+                    >
+                      {expandedDescriptions[product.id] ? 'Read less' : 'Read more'}
+                    </button>
+                  )}
+                </div>
+              )}
 
-              <AnimatePresence>
-                {showVariants === product.id && product.variants && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="absolute inset-0 bg-white/95 p-6 flex flex-col justify-center"
-                  >
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Size</label>
-                        <select
-                          value={selectedVariants[product.id]?.size || ''}
-                          onChange={(e) => handleVariantChange(product.id, 'size', e.target.value)}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-                        >
-                          <option value=""disabled hidden>Select Size</option>
-                          {product.variants.sizes.map(size => (
-                            <option key={size} value={size}>{size}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Color</label>
-                        <select
-                          value={selectedVariants[product.id]?.color || ''}
-                          onChange={(e) => handleVariantChange(product.id, 'color', e.target.value)}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-                        >
-                          <option value=""disabled hidden>Select Color</option>
-                          {product.variants.colors.map(color => (
-                            <option key={color} value={color}>{color}</option>
-                          ))}
-                        </select>
-                      </div>
-                      {selectedVariants[product.id]?.color === 'Custom' && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Custom Color</label>
-                          <input
-                            type="text"
-                            placeholder="Describe your preferances"
-                            value={customColor[product.id] || ''}
-                            onChange={(e) => setCustomColor(prev => ({
-                              ...prev,
-                              [product.id]: e.target.value
-                            }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
-                          />
-                        </div>
-                      )}
-                      <motion.button
-                        onClick={() => handleBuyNow(product)}
-                        disabled={loading[product.id]}
-                        whileTap={{ scale: 0.95 }}
-                        className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-                      >
-                        {loading[product.id] ? 'Processing...' : 'Buy Now'}
-                      </motion.button>
+              {!product.is_merchandise && (
+                <div className="text-sm text-gray-500 mb-4">
+                  <p>Artist: {product.artist_name}</p>
+                  <p>Location: {product.location}</p>
+                </div>
+              )}
+
+              {product.is_merchandise && product.variants && (
+                <div className="space-y-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Size</label>
+                    <select
+                      value={selectedVariants[product.id]?.size || ''}
+                      onChange={(e) => handleVariantChange(product.id, 'size', e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                    >
+                      <option value="">Select Size</option>
+                      {product.variants.sizes.map(size => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Color</label>
+                    <select
+                      value={selectedVariants[product.id]?.color || ''}
+                      onChange={(e) => handleVariantChange(product.id, 'color', e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                    >
+                      <option value="">Select Color</option>
+                      {[...product.variants.colors, 'Custom'].map(color => (
+                        <option key={color} value={color}>{color}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedVariants[product.id]?.color === 'Custom' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Custom Color Description</label>
+                      <input
+                        type="text"
+                        value={customColors[product.id] || ''}
+                        onChange={(e) => handleCustomColorChange(product.id, e.target.value)}
+                        placeholder="Describe your desired color"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                      />
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  )}
+                </div>
+              )}
 
-              {!product.variants && (
+              <div className="flex gap-2">
+                <motion.button
+                  onClick={() => handleAddToCart(product)}
+                  disabled={loading[product.id] || (product.is_merchandise && (!selectedVariants[product.id]?.size || !getEffectiveColor(product.id)))}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex-1 bg-white border-2 border-black text-black py-3 rounded-lg hover:bg-black hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <FiShoppingCart />
+                  Add to Cart
+                </motion.button>
                 <motion.button
                   onClick={() => handleBuyNow(product)}
-                  disabled={loading[product.id]}
+                  disabled={loading[product.id] || (product.is_merchandise && (!selectedVariants[product.id]?.size || !getEffectiveColor(product.id)))}
                   whileTap={{ scale: 0.95 }}
-                  className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading[product.id] ? 'Processing...' : 'Buy Now'}
+                  Buy Now
                 </motion.button>
-              )}
+              </div>
             </div>
           </motion.div>
         ))}
@@ -360,3 +360,5 @@ export default function Shop() {
     </motion.div>
   );
 }
+
+export default Shop;

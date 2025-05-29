@@ -1,4 +1,15 @@
+/*
+  # Update profiles table with additional user information
 
+  1. Changes
+    - Add nickname column
+    - Add shipping_address column
+    - Add country column
+    - Add email column
+
+  2. Security
+    - Maintain existing RLS policies
+*/
 
 DO $$ 
 BEGIN

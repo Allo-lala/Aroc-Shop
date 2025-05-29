@@ -21,37 +21,35 @@ function Cart() {
   const [showCardForm, setShowCardForm] = useState(false);
 
   useEffect(() => {
-  fetchCartItems();
-}, []);
+    fetchCartItems();
+  }, []);
 
-const fetchCartItems = async () => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
+  const fetchCartItems = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-      setCartItems([]);
-      setTotal(0);
+      if (!user) {
+        setCartItems([]);
+        setTotal(0);
+        setLoading(false);
+        return;
+      }
+
+      const { data: items, error } = await supabase
+        .from('cart')
+        .select('*, products(*)')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setCartItems(items || []);
+      setTotal(items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0);
+    } catch (error) {
+      console.error('Error fetching cart items:', error);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { data: items, error } = await supabase
-      .from('cart')
-      .select('*, products(*)')  // <=== include product info here
-      .eq('user_id', user.id);
-
-    if (error) throw error;
-
-    setCartItems(items || []);
-    setTotal(items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0);
-  } catch (error) {
-    console.error('Error fetching cart items:', error);
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+  };
 
   const handleQuantityChange = async (itemId: string, change: number) => {
     const item = cartItems.find(item => item.id === itemId);
@@ -61,10 +59,16 @@ const fetchCartItems = async () => {
     if (newQuantity < 1 || newQuantity > 10) return;
 
     try {
-      await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
         .from('cart')
         .update({ quantity: newQuantity })
-        .eq('id', itemId);
+        .eq('id', itemId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
       fetchCartItems();
     } catch (error) {
       console.error('Error updating quantity:', error);
@@ -73,10 +77,16 @@ const fetchCartItems = async () => {
 
   const handleRemoveItem = async (itemId: string) => {
     try {
-      await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
         .from('cart')
         .delete()
-        .eq('id', itemId);
+        .eq('id', itemId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
       fetchCartItems();
     } catch (error) {
       console.error('Error removing item:', error);
@@ -205,6 +215,13 @@ const fetchCartItems = async () => {
                     <div className="text-sm text-gray-500 mt-2">
                       <p>Artist: {item.products.artist_name}</p>
                       <p>Location: {item.products.location}</p>
+                    </div>
+                  )}
+
+                  {item.products.is_merchandise && (
+                    <div className="text-sm text-gray-500 mt-2">
+                      <p>Size: {item.size}</p>
+                      <p>Color: {item.color}</p>
                     </div>
                   )}
 
