@@ -276,41 +276,25 @@ function Cart() {
           </div>
 
           <div className="space-y-4">
-            <PayPalScriptProvider options={{ clientId: "AW6cg6fCQcDpX_Y8BsjIQ1S9JmNxe0iHpLu5Ug7q14HxRJM6brAjrL7zo9HVUQNB-JfSMozTlAswxzE1" }}>
+            <PayPalScriptProvider options={{ clientId: "AbSttMqXrD4Y03Cu6gLgNwZUrLr9w1Z4dRNy8-CY_PVbq1b9LPsrYv6b2arq0ZtpA7CMsjzc3Tp68FFz" }}>
               <PayPalButtons
-                createOrder={() => {
-                  return Promise.resolve(
-                    JSON.stringify({
-                      purchase_units: [
-                        {
-                          amount: {
-                            value: total.toFixed(2),
-                          },
-                        },
-                      ],
-                    })
-                  );
+                createOrder={(_, actions) => {
+                    return actions.order.create({
+                    intent: "CAPTURE",
+                    purchase_units: [
+                      {
+                      amount: {
+                        currency_code: "USD",
+                        value: total.toFixed(2),
+                      },
+                      },
+                    ],
+                    });
                 }}
-                onApprove={(actions) => {
-                  return new Promise<void>((resolve, reject) => {
-                    if (actions.orderID) {
-                      supabase
-                        .from('orders')
-                        .select()
-                        .eq('payment_id', actions.orderID)
-                        .single()
-                        .then(() => {
-                          handlePaypalSuccess({ id: actions.orderID });
-                          resolve();
-                        }, (error) => {
-                          console.error('Error fetching order:', error);
-                          reject(error);
-                        });
-                    } else {
-                      console.error('Order ID is undefined.');
-                      reject('Order ID is undefined.');
-                    }
-                  });
+                onApprove={async (data, actions) => {
+                  if (!actions.order) return;
+                  await actions.order.capture();
+                  await handlePaypalSuccess({ id: data.orderID });
                 }}
               />
             </PayPalScriptProvider>
@@ -319,7 +303,7 @@ function Cart() {
               onClick={() => setShowCardForm(!showCardForm)}
               className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition"
             >
-              {showCardForm ? 'Hide Card Form' : 'Pay with Card'}
+              {showCardForm ? 'Hide Card Form' : 'Add another card'}
             </button>
 
             <AnimatePresence>
