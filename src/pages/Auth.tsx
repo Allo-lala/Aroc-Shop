@@ -161,7 +161,7 @@ export default function Auth() {
             <div className="flex flex-col gap-4">
               <button
                 onClick={() => handleSocialLogin('google')}
-                className="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-lg border-2 hover:bg-gray-50 transition"
+                className="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-full border-2 hover:bg-gray-50 transition"
               >
                 <FcGoogle className="w-5 h-5" />
                 <span>Continue with Google</span>
@@ -169,7 +169,7 @@ export default function Auth() {
               
               <button
                 onClick={() => handleSocialLogin('apple')}
-                className="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-lg bg-black text-white hover:bg-gray-900 transition"
+                className="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-full bg-black text-white hover:bg-gray-900 transition"
               >
                 <BsApple className="w-5 h-5" />
                 <span>Continue with Apple</span>
