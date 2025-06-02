@@ -1,7 +1,7 @@
 ALTER TABLE products
 ADD COLUMN IF NOT EXISTS variants jsonb DEFAULT NULL;
 
--- Update existing merchandise products with variants
+--  existing merchandise products with variants
 UPDATE products 
 SET variants = jsonb_build_object(
   'sizes', ARRAY['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
@@ -9,7 +9,7 @@ SET variants = jsonb_build_object(
 )
 WHERE is_merchandise = true;
 
--- Update T-Shirts specifically
+--  T-Shirts specifically
 UPDATE products 
 SET variants = jsonb_build_object(
   'sizes', ARRAY['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
@@ -17,7 +17,7 @@ SET variants = jsonb_build_object(
 )
 WHERE category = 'Merchandise' AND name ILIKE '%T-Shirt%';
 
--- Update Hoodies
+--  Hoodies
 UPDATE products 
 SET variants = jsonb_build_object(
   'sizes', ARRAY['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
@@ -25,7 +25,7 @@ SET variants = jsonb_build_object(
 )
 WHERE category = 'Merchandise' AND name ILIKE '%Hoodie%';
 
--- Update Tote Bags
+--  Tote Bags
 UPDATE products 
 SET variants = jsonb_build_object(
   'sizes', ARRAY['Standard'],

@@ -15,7 +15,7 @@ export default function Admin() {
 
   const checkAdminAccess = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !user.email?.endsWith('@admin.com')) { // Replace with your admin domain
+    if (!user || !user.email?.endsWith('@admin.com')) { //  your admin domain
       navigate('/');
     }
   };

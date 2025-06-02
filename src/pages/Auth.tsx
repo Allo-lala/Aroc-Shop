@@ -151,7 +151,7 @@ export default function Auth() {
             {showForgotPassword
               ? 'Enter your email to receive a password reset link'
               : isSignUp
-              ? 'Aroc is for humanity'
+              ? 'For humanity...'
               : 'Sign in to continue'}
           </p>
         </div>
@@ -196,6 +196,7 @@ export default function Auth() {
                       value={formData.firstName}
                       onChange={handleInputChange}
                       required
+                      placeholder="first"
                       className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-7 py-2 text-lg"
                     />
                   </div>
@@ -208,6 +209,7 @@ export default function Auth() {
                       value={formData.lastName}
                       onChange={handleInputChange}
                       required
+                      placeholder="last"
                       className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-black focus:ring-black pl-7 py-2 text-lg"
                     />
                   </div>
