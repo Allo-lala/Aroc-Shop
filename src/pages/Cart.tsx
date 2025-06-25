@@ -6,6 +6,10 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import ReactConfetti from 'react-confetti';
 import type { CartItem, Product } from '../lib/supabase';
 import { FiPlus, FiMinus, FiTrash2 } from 'react-icons/fi';
+import { FaCcVisa, FaCcMastercard, FaPaypal } from 'react-icons/fa';
+import { SiBinance } from 'react-icons/si';
+
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
 
 interface CartItemWithProduct extends CartItem {
   products: Product;
@@ -18,7 +22,7 @@ function Cart() {
   const [total, setTotal] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
-  const [showCardForm, setShowCardForm] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'card' | 'binance'>('paypal');
 
   useEffect(() => {
     fetchCartItems();
@@ -276,42 +280,83 @@ function Cart() {
           </div>
 
           <div className="space-y-4">
-            <PayPalScriptProvider options={{ clientId: "AbSttMqXrD4Y03Cu6gLgNwZUrLr9w1Z4dRNy8-CY_PVbq1b9LPsrYv6b2arq0ZtpA7CMsjzc3Tp68FFz" }}>
-              <PayPalButtons
-                createOrder={(_, actions) => {
+            {/* Payment Method Selector */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setPaymentMethod('paypal')}
+                className={`flex-1 flex items-center justify-center py-2 rounded-full border-2 transition
+                  ${paymentMethod === 'paypal'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow'
+                    : 'bg-white text-blue-600 border-blue-300 hover:bg-blue-50'}
+                `}
+                aria-label="PayPal"
+              >
+                <FaPaypal className="w-7 h-7" />
+              </button>
+              <button
+                onClick={() => setPaymentMethod('card')}
+                className={`flex-1 flex items-center justify-center py-2 rounded-full border-2 transition
+                  ${paymentMethod === 'card'
+                    ? 'bg-gradient-to-r from-blue-500 to-yellow-500 text-white border-yellow-500 shadow'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}
+                `}
+                aria-label="Card"
+              >
+                <FaCcVisa className="w-7 h-7 text-black" />
+                <FaCcMastercard className="w-7 h-7 text-black -ml-2" />
+              </button>
+              <button
+                onClick={() => setPaymentMethod('binance')}
+                className={`flex-1 flex items-center justify-center py-2 rounded-full border-2 transition
+                  ${paymentMethod === 'binance'
+                    ? 'bg-black text-yellow-400 border-black shadow'
+                    : 'bg-white text-yellow-500 border-yellow-300 hover:bg-yellow-50'}
+                `}
+                aria-label="Binance"
+              >
+                <SiBinance className="w-7 h-7 text-yellow-400" />
+              </button>
+            </div>
+
+            {/* Payment Forms */}
+            {paymentMethod === 'paypal' && (
+              <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID }}>
+                <PayPalButtons
+                  createOrder={(_, actions) => {
                     return actions.order.create({
-                    intent: "CAPTURE",
-                    purchase_units: [
-                      {
-                      amount: {
-                        currency_code: "USD",
-                        value: total.toFixed(2),
-                      },
-                      },
-                    ],
+                      intent: "CAPTURE",
+                      purchase_units: [
+                        {
+                          amount: {
+                            currency_code: "USD",
+                            value: total.toFixed(2),
+                          },
+                        },
+                      ],
                     });
-                }}
-                onApprove={async (data, actions) => {
-                  if (!actions.order) return;
-                  await actions.order.capture();
-                  await handlePaypalSuccess({ id: data.orderID });
-                }}
-              />
-            </PayPalScriptProvider>
+                  }}
+                  onApprove={async (data, actions) => {
+                    if (!actions.order) return;
+                    await actions.order.capture();
+                    await handlePaypalSuccess({ id: data.orderID });
+                  }}
+                />
+              </PayPalScriptProvider>
+            )}
 
-            <button
-              onClick={() => setShowCardForm(!showCardForm)}
-              className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition"
-            >
-              {showCardForm ? 'Hide Card Form' : 'Add another card'}
-            </button>
-
-            <AnimatePresence>
-              {showCardForm && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
+            {paymentMethod === 'card' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-4"
+              >
+                {/* Card Payment Form */}
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    alert('Card payment integration goes here!');
+                  }}
                   className="space-y-4"
                 >
                   <div>
@@ -322,10 +367,9 @@ function Cart() {
                       type="text"
                       placeholder="1234 5678 9012 3456"
                       className="w-full px-3 py-2 border rounded-lg"
-                      disabled
+                      required
                     />
                   </div>
-                  
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -335,7 +379,7 @@ function Cart() {
                         type="text"
                         placeholder="MM/YY"
                         className="w-full px-3 py-2 border rounded-lg"
-                        disabled
+                        required
                       />
                     </div>
                     <div>
@@ -346,20 +390,58 @@ function Cart() {
                         type="text"
                         placeholder="123"
                         className="w-full px-3 py-2 border rounded-lg"
-                        disabled
+                        required
                       />
                     </div>
                   </div>
-
                   <button
-                    disabled
-                    className="w-full bg-gray-400 text-white py-3 rounded-lg cursor-not-allowed"
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-blue-500 to-yellow-500 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition"
                   >
-                    Card Payment Coming Soon
+                    Pay with Card
                   </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </form>
+              </motion.div>
+            )}
+
+            {paymentMethod === 'binance' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-4"
+              >
+                {/* Binance Pay Integration */}
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    try {
+                      const res = await fetch('http://localhost:5000/api/binance-pay', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ amount: total }),
+                      });
+                      const data = await res.json();
+                      if (data.payUrl) {
+                        window.open(data.payUrl, '_blank');
+                      } else {
+                        alert('Failed to create Binance Pay order.');
+                      }
+                    } catch (err) {
+                      alert('Error connecting to Binance Pay.');
+                    }
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="w-full bg-black text-yellow-400 py-3 rounded-lg flex items-center justify-center gap-2 text-lg font-semibold hover:bg-gray-900 transition"
+                  >
+                    <SiBinance className="w-7 h-7 text-yellow-400" />
+                    Pay with Binance
+                  </button>
+                </form>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>
