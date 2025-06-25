@@ -6,7 +6,7 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import ReactConfetti from 'react-confetti';
 import type { CartItem, Product } from '../lib/supabase';
 import { FiPlus, FiMinus, FiTrash2 } from 'react-icons/fi';
-import { FaCcVisa, FaCcMastercard, FaPaypal } from 'react-icons/fa';
+import { FaCcVisa, FaPaypal } from 'react-icons/fa';
 import { SiBinance } from 'react-icons/si';
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
@@ -286,8 +286,8 @@ function Cart() {
                 onClick={() => setPaymentMethod('paypal')}
                 className={`flex-1 flex items-center justify-center py-2 rounded-full border-2 transition
                   ${paymentMethod === 'paypal'
-                    ? 'bg-blue-600 text-white border-blue-600 shadow'
-                    : 'bg-white text-blue-600 border-blue-300 hover:bg-blue-50'}
+                    ? 'bg-[#003087] text-white border-[#003087] shadow' // Navy blue for PayPal
+                    : 'bg-white text-[#003087] border-blue-300 hover:bg-blue-50'}
                 `}
                 aria-label="PayPal"
               >
@@ -297,13 +297,12 @@ function Cart() {
                 onClick={() => setPaymentMethod('card')}
                 className={`flex-1 flex items-center justify-center py-2 rounded-full border-2 transition
                   ${paymentMethod === 'card'
-                    ? 'bg-gradient-to-r from-blue-500 to-yellow-500 text-white border-yellow-500 shadow'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}
+                    ? 'bg-black text-white border-black shadow'
+                    : 'bg-white text-black border-gray-300 hover:bg-gray-100'}
                 `}
                 aria-label="Card"
               >
-                <FaCcVisa className="w-7 h-7 text-black" />
-                <FaCcMastercard className="w-7 h-7 text-black -ml-2" />
+                <FaCcVisa className="w-7 h-7 text-[#003087]" /> {/* Navy blue Visa icon */}
               </button>
               <button
                 onClick={() => setPaymentMethod('binance')}
@@ -396,9 +395,9 @@ function Cart() {
                   </div>
                   <button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-blue-500 to-yellow-500 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition"
+                    className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition"
                   >
-                    Pay with Card
+                    Pay
                   </button>
                 </form>
               </motion.div>

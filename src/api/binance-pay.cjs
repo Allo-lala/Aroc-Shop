@@ -6,8 +6,8 @@ const router = express.Router();
 const BINANCE_API_KEY = process.env.BINANCE_API_KEY;
 const BINANCE_API_SECRET = process.env.BINANCE_API_SECRET;
 
-console.log('BINANCE_API_KEY:', process.env.BINANCE_API_KEY);
-console.log('BINANCE_API_SECRET:', process.env.BINANCE_API_SECRET);
+// console.log('BINANCE_API_KEY:', process.env.BINANCE_API_KEY);
+// console.log('BINANCE_API_SECRET:', process.env.BINANCE_API_SECRET);
 
 router.post('/binance-pay', async (req, res) => {
   const { amount } = req.body;
