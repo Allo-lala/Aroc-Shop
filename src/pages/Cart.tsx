@@ -7,7 +7,6 @@ import ReactConfetti from 'react-confetti';
 import type { CartItem, Product } from '../lib/supabase';
 import { FiPlus, FiMinus, FiTrash2 } from 'react-icons/fi';
 import { FaCcVisa, FaPaypal } from 'react-icons/fa';
-import { SiBinance } from 'react-icons/si';
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
 
@@ -267,10 +266,10 @@ function Cart() {
               <span>Subtotal</span>
               <span>${total.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between">
+            {/* <div className="flex justify-between">
               <span>Shipping</span>
               <span>Free</span>
-            </div>
+            </div> */}
             <div className="border-t pt-3">
               <div className="flex justify-between font-semibold">
                 <span>Total</span>
@@ -304,17 +303,7 @@ function Cart() {
               >
                 <FaCcVisa className="w-7 h-7 text-[#003087]" /> {/* Navy blue Visa icon */}
               </button>
-              <button
-                onClick={() => setPaymentMethod('binance')}
-                className={`flex-1 flex items-center justify-center py-2 rounded-full border-2 transition
-                  ${paymentMethod === 'binance'
-                    ? 'bg-black text-yellow-400 border-black shadow'
-                    : 'bg-white text-yellow-500 border-yellow-300 hover:bg-yellow-50'}
-                `}
-                aria-label="Binance"
-              >
-                <SiBinance className="w-7 h-7 text-yellow-400" />
-              </button>
+              
             </div>
 
             {/* Payment Forms */}
@@ -354,7 +343,7 @@ function Cart() {
                 <form
                   onSubmit={e => {
                     e.preventDefault();
-                    alert('Card payment integration goes here!');
+                    alert('Ooops, Sorry Card integration hasn`t been configure!');
                   }}
                   className="space-y-4"
                 >
@@ -403,44 +392,7 @@ function Cart() {
               </motion.div>
             )}
 
-            {paymentMethod === 'binance' && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-4"
-              >
-                {/* Binance Pay Integration */}
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    try {
-                      const res = await fetch('http://localhost:5000/api/binance-pay', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ amount: total }),
-                      });
-                      const data = await res.json();
-                      if (data.payUrl) {
-                        window.open(data.payUrl, '_blank');
-                      } else {
-                        alert('Failed to create Binance Pay order.');
-                      }
-                    } catch (err) {
-                      alert('Error connecting to Binance Pay.');
-                    }
-                  }}
-                >
-                  <button
-                    type="submit"
-                    className="w-full bg-black text-yellow-400 py-3 rounded-lg flex items-center justify-center gap-2 text-lg font-semibold hover:bg-gray-900 transition"
-                  >
-                    <SiBinance className="w-7 h-7 text-yellow-400" />
-                    Pay with Binance
-                  </button>
-                </form>
-              </motion.div>
-            )}
+            
           </div>
         </div>
       </div>
