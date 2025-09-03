@@ -72,7 +72,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; {new Date().getFullYear()} Aroc. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Aroc</p>
         </div>
       </div>
     </footer>
